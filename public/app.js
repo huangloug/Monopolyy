@@ -32,19 +32,29 @@ joinGameButton.addEventListener('click', () => {
     const reader = new FileReader();
     reader.onload = () => {
         const avatarData = reader.result;
-        console.log('Gửi event', {name: playerName,avatar:avatarData})
-        socket.emit('join-game', { name: playerName, avatar: avatarData }); 
-        setupContainer.style.display = 'none';
-        waitingRoom.style.display = 'block'; 
+        socket.emit('join-game', { name: playerName, avatar: avatarData });
     };
     reader.readAsDataURL(avatarFile);
 });
-
+socket.on('waiting-room', (players) => {
+    setupContainer.style.display = 'none';
+    waitingRoom.style.display = 'flex';
+    updateWaitingRoom(players);
+});
 socket.on('update-players', (players) => {
     playersData = players;
     console.log('Players updated:', players);
     updatePlayersList();
 });
+function updateWaitingRoom(players) {
+    waitingPlayersList.innerHTML = '';
+    Object.values(players).forEach(player => {
+        const li = document.createElement('li');
+        li.classList.add('list-group-item');
+        li.textContent = `${player.name} - ${player.isReady ? 'Sẵn sàng' : 'Chưa sẵn sàng'}`;
+        waitingPlayersList.appendChild(li);
+    });
+}
 socket.on('update-properties', (serverProperties) => {
     properties = serverProperties;
 });

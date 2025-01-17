@@ -3,8 +3,12 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
-let players = {};
+const io = require('socket.io')(server, {
+    cors: {
+        origin: '*', 
+        methods: ['GET', 'POST']
+    }
+});
 let properties = [];
 app.use(express.static('public'));
 
@@ -27,12 +31,11 @@ function initializeProperties() {
     }));
 }
 initializeProperties();
+let players = {};
 
 io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
     socket.on('join-game', ({ name, avatar }) => {
-        console.log('Receive data',{name,avatar})
-        console.log('Updated players list:', players);
         players[socket.id] = {
             id: socket.id,
             name,
@@ -43,7 +46,6 @@ io.on('connection', (socket) => {
             isReady: false
         };
         io.emit('waiting-room', players);
-        console.log('Emit waiting-room event with players:', players);
     });
     socket.on('disconnect', () => {
         delete players[socket.id];
@@ -52,10 +54,9 @@ io.on('connection', (socket) => {
     socket.on('player-ready', () => {
         if (players[socket.id]) {
             players[socket.id].isReady = true;
-            io.emit('waiting-room', players);
-    
+            io.emit('waiting-room', players); 
             const allReady = Object.values(players).every(player => player.isReady);
-            if (allReady) {
+            if (allReady && Object.keys(players).length > 1) {
                 io.emit('start-countdown', 10); 
                 setTimeout(() => {
                     io.emit('start-game', players);
@@ -63,6 +64,7 @@ io.on('connection', (socket) => {
             }
         }
     });
+    
     
     socket.on('buy-property', ({ propertyId }) => {
         const player = players[socket.id];
