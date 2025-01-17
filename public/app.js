@@ -9,11 +9,15 @@ const assetsList = document.getElementById('assets-list');
 const playersContainer = document.getElementById('players');
 const playerAssetsList = document.getElementById('player-assets-list');
 const propertyInfo = document.getElementById('property-info');
-const countdownTimer = document.getElementById('countdown-timer');
 const diceResultSpan = document.getElementById('dice-result');
+const waitingRoom = document.getElementById('waiting-room');
+const waitingPlayersList = document.getElementById('waiting-players-list');
+const readyButton = document.getElementById('ready-button');
+const countdownTimer = document.getElementById('countdown-timer');
 let playersData = {};  
 let properties = []; 
 let countdownInterval;
+
 joinGameButton.addEventListener('click', () => {
     const playerName = playerNameInput.value.trim();
     const avatarFile = avatarUploadInput.files[0];
@@ -28,13 +32,14 @@ joinGameButton.addEventListener('click', () => {
     const reader = new FileReader();
     reader.onload = () => {
         const avatarData = reader.result;
-        socket.emit('join-game', { name: playerName, avatar: avatarData });
-
+        console.log('Gửi event', {name: playerName,avatar:avatarData})
+        socket.emit('join-game', { name: playerName, avatar: avatarData }); 
         setupContainer.style.display = 'none';
-        mainContainer.style.display = 'flex';
+        waitingRoom.style.display = 'block'; 
     };
     reader.readAsDataURL(avatarFile);
 });
+
 socket.on('update-players', (players) => {
     playersData = players;
     console.log('Players updated:', players);
@@ -64,6 +69,29 @@ function updatePlayersList() {
         playersList.appendChild(li);
     }
 }
+readyButton.addEventListener('click', () => {
+    socket.emit('player-ready');
+    readyButton.disabled = true; 
+});
+
+socket.on('start-countdown', (duration) => {
+    let remainingTime = duration;
+    countdownTimer.textContent = `Game bắt đầu trong ${remainingTime} giây...`;
+    countdownInterval = setInterval(() => {
+        remainingTime--;
+        countdownTimer.textContent = `Game bắt đầu trong ${remainingTime} giây...`;
+        if (remainingTime <= 0) {
+            clearInterval(countdownInterval);
+            countdownTimer.textContent = '';
+        }
+    }, 1000);
+});
+socket.on('start-game', (players) => {
+    waitingRoom.style.display = 'none';
+    mainContainer.style.display = 'flex';
+    console.log('Game bắt đầu!', players);
+});
+
 function showPlayerDetails(player) {
     playerAssetsList.innerHTML = '';
     if (player.assets && player.assets.length > 0) {
@@ -99,18 +127,7 @@ socket.on('property-info', ({ property }) => {
     const propertyDetailsModal = new bootstrap.Modal(document.getElementById('propertyDetailsModal'));
     propertyDetailsModal.show();
 });
-socket.on('start-countdown', (duration) => {
-    let remainingTime = duration;
-    countdownTimer.textContent = `Game bắt đầu trong ${remainingTime} giây...`;
-    countdownInterval = setInterval(() => {
-        remainingTime--;
-        countdownTimer.textContent = `Game bắt đầu trong ${remainingTime} giây...`;
-        if (remainingTime <= 0) {
-            clearInterval(countdownInterval);
-            countdownTimer.textContent = '';
-        }
-    }, 1000);
-});
+
 socket.on('roll-dice', ({ playerId, dice, newPosition }) => {
     const player = playersData[playerId];
     if (!player) return;

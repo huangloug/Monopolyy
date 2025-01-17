@@ -1,16 +1,12 @@
-// server.js - Fully updated logic for Monopoly game
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-
-app.use(express.static('public'));
-
 let players = {};
 let properties = [];
+app.use(express.static('public'));
 
 const colors = ['red', 'blue', 'green', 'yellow'];
 const propertyNames = [
@@ -35,18 +31,39 @@ initializeProperties();
 io.on('connection', (socket) => {
     console.log('Player connected:', socket.id);
     socket.on('join-game', ({ name, avatar }) => {
+        console.log('Receive data',{name,avatar})
+        console.log('Updated players list:', players);
         players[socket.id] = {
             id: socket.id,
             name,
             avatar,
             money: 1500,
             position: 0,
-            assets: []
+            assets: [],
+            isReady: false
         };
-        io.emit('update-players', players);
-        io.emit('update-properties', properties);
+        io.emit('waiting-room', players);
+        console.log('Emit waiting-room event with players:', players);
     });
-
+    socket.on('disconnect', () => {
+        delete players[socket.id];
+        io.emit('waiting-room', players);
+    });
+    socket.on('player-ready', () => {
+        if (players[socket.id]) {
+            players[socket.id].isReady = true;
+            io.emit('waiting-room', players);
+    
+            const allReady = Object.values(players).every(player => player.isReady);
+            if (allReady) {
+                io.emit('start-countdown', 10); 
+                setTimeout(() => {
+                    io.emit('start-game', players);
+                }, 10000);
+            }
+        }
+    });
+    
     socket.on('buy-property', ({ propertyId }) => {
         const player = players[socket.id];
         const property = properties.find(prop => prop.id === propertyId);
