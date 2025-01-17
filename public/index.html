@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monopoly Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="setup-container" class="container vh-100 d-flex justify-content-center align-items-center">
+        <div class="card shadow-lg p-4 bg-light">
+            <h2 class="text-center mb-4">Chào mừng đến với Monopoly</h2>
+            <div class="mb-3">
+                <input type="text" id="player-name" class="form-control" placeholder="Nhập tên của bạn">
+            </div>
+            <div class="mb-3">
+                <label for="avatar-upload" class="form-label">Tải ảnh đại diện</label>
+                <input type="file" id="avatar-upload" class="form-control" accept="image/*">
+            </div>
+            <div class="text-center">
+                <button id="join-game" class="btn btn-primary btn-lg">Tham gia game</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-container" class="container-fluid" style="display: none;">
+        <div class="row">
+            <div class="col-md-8">
+                <div id="map-container" class="position-relative">
+                    <img src="map.png" id="game-map" class="img-fluid">
+                    <div id="players" class="position-absolute"></div>
+                </div>
+                <div class="mt-4 text-center">
+                    <button id="roll-dice" class="btn btn-primary">🎲 Lắc xúc xắc</button>
+                    <p class="mt-2">Kết quả xúc xắc: <span id="dice-result">-</span></p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header text-center">Danh sách người chơi</div>
+                    <ul id="players-list" class="list-group list-group-flush"></ul>
+                </div>
+                <div class="card">
+                    <div class="card-header text-center">Tài sản của bạn</div>
+                    <ul id="player-assets-list" class="list-group list-group-flush"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="playerDetailsModalLabel">Chi tiết người chơi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="player-assets-list" class="list-group"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="purchasePropertyModal" tabindex="-1" aria-labelledby="purchasePropertyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="purchasePropertyModalLabel">Mua đất</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="purchase-property-info">Thông tin đất đang tải...</p>
+                    <p><strong>Giá:</strong> <span id="property-price"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button id="confirm-purchase-button" class="btn btn-primary">Mua đất</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bỏ qua</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

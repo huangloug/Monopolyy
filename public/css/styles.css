@@ -1,0 +1,120 @@
+
+body {
+ font-family: Arial, sans-serif;
+ background-color: #f8f9fa;
+ margin: 0;
+ padding: 0;
+}
+
+#setup-container {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ height: 100vh;
+}
+
+#main-container {
+ display: flex;
+ flex-direction: row;
+ padding: 20px;
+}
+
+#map-container {
+ position: relative;
+ width: 70%;
+ height: auto;
+ margin-right: 20px;
+}
+
+#game-map {
+ border: 5px solid #333;
+ border-radius: 10px;
+ width: 100%;
+ height: auto;
+}
+
+#players {
+ position: absolute;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ pointer-events: none;
+}
+
+.player-avatar {
+ width: 40px;
+ height: 40px;
+ border-radius: 50%;
+ object-fit: cover;
+ border: 2px solid white;
+ box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.card {
+ border-radius: 10px;
+ box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+ background-color: #495057;
+ color: #fff;
+ font-size: 1.2rem;
+ text-align: center;
+}
+
+.list-group-item {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ padding: 10px;
+ border-bottom: 1px solid #ddd;
+}
+
+.player-money {
+ font-weight: bold;
+ color: #28a745;
+}
+
+.modal-header {
+ background-color: #343a40;
+ color: white;
+}
+
+.modal-body {
+ font-size: 1rem;
+ line-height: 1.5;
+}
+
+.modal-footer .btn {
+ min-width: 100px;
+}
+
+#roll-dice {
+ font-size: 1.2rem;
+ padding: 10px 20px;
+ background-color: #007bff;
+ color: white;
+ border: none;
+ border-radius: 5px;
+ cursor: pointer;
+ transition: background-color 0.3s;
+}
+
+#roll-dice:hover {
+ background-color: #0056b3;
+}
+
+#purchasePropertyModal {
+ font-size: 1.1rem;
+}
+
+#purchase-property-info {
+ font-weight: bold;
+ color: #495057;
+}
+
+#players-list, #player-assets-list {
+ max-height: 400px;
+ overflow-y: auto;
+}
