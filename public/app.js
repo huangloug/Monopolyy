@@ -1,22 +1,38 @@
 const socket = io();
 const setupContainer = document.getElementById('setup-container');
 const mainContainer = document.getElementById('main-container');
+const waitingRoom = document.getElementById('waiting-room');
 const playerNameInput = document.getElementById('player-name');
 const avatarUploadInput = document.getElementById('avatar-upload');
 const joinGameButton = document.getElementById('join-game');
+const waitingPlayersList = document.getElementById('waiting-players-list');
 const playersList = document.getElementById('players-list');
-const assetsList = document.getElementById('assets-list');
-const playersContainer = document.getElementById('players');
+const readyButton = document.getElementById('ready-button');
+const countdownTimer = document.getElementById('countdown-timer');
 const playerAssetsList = document.getElementById('player-assets-list');
 const propertyInfo = document.getElementById('property-info');
 const diceResultSpan = document.getElementById('dice-result');
-const waitingRoom = document.getElementById('waiting-room');
-const waitingPlayersList = document.getElementById('waiting-players-list');
-const readyButton = document.getElementById('ready-button');
-const countdownTimer = document.getElementById('countdown-timer');
-let playersData = {};  
-let properties = []; 
-let countdownInterval;
+const rollDiceButton = document.getElementById('roll-dice');
+
+let playersData = {};
+let properties = [];
+let hasJoinGame = false;
+let countdownInterval = null;
+
+function showScreen(screen) {
+    const screens = ['setup', 'waiting', 'main'];
+    screens.forEach(s => {
+        const container = document.getElementById(`${s}-container`);
+        if (container) {
+            container.style.visibility = s === screen ? 'visible' : 'hidden';
+            container.style.display = s === screen ? 'flex' : 'none';
+        }
+    });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    showScreen('setup');
+});
 
 joinGameButton.addEventListener('click', () => {
     const playerName = playerNameInput.value.trim();
@@ -29,23 +45,20 @@ joinGameButton.addEventListener('click', () => {
         alert('Vui lòng tải ảnh đại diện!');
         return;
     }
+
     const reader = new FileReader();
     reader.onload = () => {
         const avatarData = reader.result;
         socket.emit('join-game', { name: playerName, avatar: avatarData });
+        hasJoinGame = true;
+        showScreen('waiting');
+    };
+    reader.onerror = () => {
+        alert('Có lỗi xảy ra khi đọc ảnh đại diện!');
     };
     reader.readAsDataURL(avatarFile);
 });
-socket.on('waiting-room', (players) => {
-    setupContainer.style.display = 'none';
-    waitingRoom.style.display = 'flex';
-    updateWaitingRoom(players);
-});
-socket.on('update-players', (players) => {
-    playersData = players;
-    console.log('Players updated:', players);
-    updatePlayersList();
-});
+
 function updateWaitingRoom(players) {
     waitingPlayersList.innerHTML = '';
     Object.values(players).forEach(player => {
@@ -55,13 +68,10 @@ function updateWaitingRoom(players) {
         waitingPlayersList.appendChild(li);
     });
 }
-socket.on('update-properties', (serverProperties) => {
-    properties = serverProperties;
-});
+
 function updatePlayersList() {
     playersList.innerHTML = '';
-    for (const id in playersData) {
-        const player = playersData[id];
+    Object.values(playersData).forEach(player => {
         const li = document.createElement('li');
         li.classList.add('list-group-item', 'd-flex', 'align-items-center', 'justify-content-between');
         const avatar = document.createElement('img');
@@ -77,11 +87,37 @@ function updatePlayersList() {
         li.appendChild(money);
         li.addEventListener('click', () => showPlayerDetails(player));
         playersList.appendChild(li);
-    }
+    });
 }
-readyButton.addEventListener('click', () => {
-    socket.emit('player-ready');
-    readyButton.disabled = true; 
+
+function updatePlayerPositions() {
+    const playersContainer = document.getElementById('players');
+    playersContainer.innerHTML = '';
+    Object.values(playersData).forEach(player => {
+        const playerMarker = document.createElement('div');
+        playerMarker.classList.add('player-marker');
+        playerMarker.style.left = `${player.position * 50}px`;
+        playerMarker.textContent = player.name;
+        playersContainer.appendChild(playerMarker);
+    });
+}
+
+socket.on('waiting-room', (players) => {
+    if (!hasJoinGame) return;
+    updateWaitingRoom(players);
+});
+
+socket.on('start-game', (players) => {
+    showScreen('main');
+    playersData = players;
+    updatePlayersList();
+    updatePlayerPositions();
+});
+
+socket.on('update-players', (players) => {
+    playersData = players;
+    updatePlayersList();
+    updatePlayerPositions();
 });
 
 socket.on('start-countdown', (duration) => {
@@ -96,10 +132,16 @@ socket.on('start-countdown', (duration) => {
         }
     }, 1000);
 });
-socket.on('start-game', (players) => {
-    waitingRoom.style.display = 'none';
-    mainContainer.style.display = 'flex';
-    console.log('Game bắt đầu!', players);
+
+readyButton.addEventListener('click', () => {
+    socket.emit('player-ready');
+    readyButton.disabled = true;
+});
+
+rollDiceButton.addEventListener('click', () => {
+    const dice = Math.floor(Math.random() * 6) + 1;
+    socket.emit('roll-dice', { dice });
+    diceResultSpan.textContent = dice; 
 });
 
 function showPlayerDetails(player) {
@@ -109,13 +151,6 @@ function showPlayerDetails(player) {
             const li = document.createElement('li');
             li.classList.add('list-group-item');
             li.textContent = asset.name;
-            if (player.id === socket.id) {
-                const upgradeButton = document.createElement('button');
-                upgradeButton.textContent = 'Nâng cấp';
-                upgradeButton.classList.add('btn', 'btn-primary', 'ms-2');
-                upgradeButton.addEventListener('click', () => upgradeProperty(asset.id));
-                li.appendChild(upgradeButton);
-            }
             playerAssetsList.appendChild(li);
         });
     } else {
@@ -127,6 +162,7 @@ function showPlayerDetails(player) {
     const playerDetailsModal = new bootstrap.Modal(document.getElementById('playerDetailsModal'));
     playerDetailsModal.show();
 }
+
 socket.on('property-info', ({ property }) => {
     propertyInfo.innerHTML = `
         <p><strong>Chủ sở hữu:</strong> ${property.owner ? playersData[property.owner].name : 'Không có'}</p>
@@ -138,70 +174,20 @@ socket.on('property-info', ({ property }) => {
     propertyDetailsModal.show();
 });
 
-socket.on('roll-dice', ({ playerId, dice, newPosition }) => {
+socket.on('property-purchased', ({ playerId, propertyId }) => {
     const player = playersData[playerId];
-    if (!player) return;
-    player.position = newPosition;
-    const property = properties[newPosition];
-    if (property.owner && property.owner !== playerId) {
-        const rent = Math.floor(property.value * 0.05);
-        player.money -= rent;
-        playersData[property.owner].money += rent;
-        if (player.money <= 0) {
-            alert(`${player.name} đã thua vì hết tiền!`);
-            socket.emit('player-lost', { playerId });
-        } else {
-            alert(`${player.name} phải trả $${rent} cho ${playersData[property.owner].name}`);
-        }
-    } else if (property.owner === playerId) {
-        alert(`${player.name} đã quay lại đất của mình: ${property.name}`);
-    } else if (!property.owner) {
-        const purchaseModal = new bootstrap.Modal(document.getElementById('purchasePropertyModal'));
-        document.getElementById('purchase-property-info').textContent = `Bạn có muốn mua ${property.name} với giá $${property.value}?`;
-        document.getElementById('confirm-purchase-button').onclick = () => {
-            socket.emit('buy-property', { propertyId: property.id });
-            purchaseModal.hide();
-        };
-        purchaseModal.show();
-    }
-    updatePlayersList();
+    const property = properties.find(p => p.id === propertyId);
+    alert(`${player.name} đã mua ${property.name} với giá $${property.value}!`);
 });
-function upgradeProperty(propertyId) {
-    const property = properties.find(prop => prop.id === propertyId);
-    if (!property || property.owner !== socket.id) return;
-    const upgradeCosts = {
-        'Đất hoang': 0.2,
-        'Nhà lá': 0.4,
-        'Nhà 1 tầng': 0.8,
-        'Nhà lầu': 1.2
-    };
-    const nextLevels = {
-        'Đất hoang': 'Nhà lá',
-        'Nhà lá': 'Nhà 1 tầng',
-        'Nhà 1 tầng': 'Nhà lầu',
-        'Nhà lầu': 'Lâu đài tình yêu'
-    };
-    const currentLevel = property.level;
-    const nextLevel = nextLevels[currentLevel];
-    const costMultiplier = upgradeCosts[currentLevel];
-    if (!nextLevel || !costMultiplier) {
-        alert('Đất đã đạt cấp tối đa!');
-        return;
-    }
-    const upgradeCost = Math.floor(property.value * costMultiplier);
-    const player = playersData[socket.id];
-    if (player.money >= upgradeCost) {
-        player.money -= upgradeCost;
-        property.value = Math.floor(property.value * (1 + costMultiplier / 2));
-        property.level = nextLevel;
-        alert(`Đã nâng cấp ${property.name} lên ${nextLevel} với chi phí $${upgradeCost}`);
-        updatePlayersList();
-    } else {
-        alert('Không đủ tiền để nâng cấp đất!');
-    }
-}
+
 socket.on('player-lost', ({ playerId }) => {
     delete playersData[playerId];
     updatePlayersList();
-    alert(`Người chơi đã bị loại khỏi trò chơi!`);
+    alert(`Người chơi ${playersData[playerId]?.name || 'N/A'} đã bị loại!`);
+
+    const remainingPlayers = Object.keys(playersData);
+    if (remainingPlayers.length === 1) {
+        alert(`Người chơi ${playersData[remainingPlayers[0]].name} đã thắng!`);
+        socket.emit('game-over');
+    }
 });

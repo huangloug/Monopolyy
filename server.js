@@ -54,9 +54,12 @@ io.on('connection', (socket) => {
     socket.on('player-ready', () => {
         if (players[socket.id]) {
             players[socket.id].isReady = true;
+            console.log('Player ready:', players[socket.id]);
             io.emit('waiting-room', players); 
             const allReady = Object.values(players).every(player => player.isReady);
+            console.log('All players ready:', allReady);
             if (allReady && Object.keys(players).length > 1) {
+                console.log('Starting countdown for game...');
                 io.emit('start-countdown', 10); 
                 setTimeout(() => {
                     io.emit('start-game', players);
